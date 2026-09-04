@@ -40,7 +40,7 @@ def options(settings: dict) -> list:
             Option("driver", "The hardware this collector reads",
                    kind="choice", default="",
                    choices=(("", "-- from a weewx.conf --"),),
-                   choices_from=lambda: _hardware_choices(chosen),
+                   choices_from=lambda: hardware_choices(chosen),
                    help="Every WeeWX driver on this machine. Choosing one "
                         "and saving brings up its own settings below, read "
                         "out of the driver itself."),
@@ -78,7 +78,7 @@ def options(settings: dict) -> list:
     ]
 
 
-def _hardware_choices(chosen: str = "") -> list[tuple[str, str]]:
+def hardware_choices(chosen: str = "") -> list[tuple[str, str]]:
     """Every WeeWX driver on this machine, for the hardware list.
 
     `chosen` is what is configured now, and it is always in the list even

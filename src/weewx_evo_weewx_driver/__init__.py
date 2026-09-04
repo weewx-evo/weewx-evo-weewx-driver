@@ -37,7 +37,7 @@ have, and absent when it is not.
 
 from __future__ import annotations
 
-from weewx_evo.collectors import Kind
+from weewx_evo.collectors import Choice, Kind
 
 VERSION = "0.1.0"
 
@@ -51,7 +51,7 @@ def collector_kind() -> Kind:
     page that printed `weewx-evo weewx-driver run` would be telling somebody
     to type a command that does not exist.
     """
-    from .options import options
+    from .options import hardware_choices, options
 
     return Kind(
         "A WeeWX driver, running in its own process",
@@ -60,7 +60,15 @@ def collector_kind() -> Kind:
         "have to be installed: point at the driver file and what it imports "
         "is stood in for.",
         "weewx-evo-weewx-driver run",
-        options)
+        options,
+        # Asked while the collector is created, because which driver it is
+        # decides what fields its page has. Left to that page, somebody
+        # arrives at a form that cannot ask anything yet.
+        Choice("driver", "The hardware",
+               "Leave this on 'from a weewx.conf' to reuse that driver's "
+               "configuration.",
+               lambda picked: [("", "-- from a weewx.conf --"),
+                               *hardware_choices(picked)]))
 
 
 __all__ = ["VERSION", "collector_kind"]
