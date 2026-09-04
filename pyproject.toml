@@ -1,7 +1,7 @@
 [project]
 name = "weewx-evo-weewx-driver"
-version = "0.1.0"
-description = "Run any WeeWX driver as a weewx-evo collector, without installing WeeWX."
+version = "0.2.0"
+description = "Run any WeeWX driver from weewx-evo, without installing WeeWX. The thirteen WeeWX ships are included."
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 readme = "README.md"
