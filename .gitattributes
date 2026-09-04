@@ -1,0 +1,16 @@
+# One line ending everywhere. The repository stores LF; Windows checkouts may
+# hold CRLF locally, but what the Linux container gets is LF -- and a shell
+# script or a config file with CRLF in it fails in ways that read as a bug in
+# something else entirely.
+* text=auto eol=lf
+
+# Vendored, and byte-exact on purpose: it is somebody else's minified
+# JavaScript and touching it invalidates any comparison with upstream.
+src/weewx_evo/feeds/diagnostic/vendor/* -text
+
+# Captured console output. These are what a real Ecowitt station sent, and the
+# tests compare them literally.
+tests/ecowitt/fixtures/* -text
+
+*.sdb binary
+*.png binary
