@@ -138,7 +138,12 @@ def main(argv: list[str]) -> int:
         # file no release contains, which is the one thing PROVENANCE cannot
         # describe.
         (WHERE / name).unlink()
-    (WHERE / "PROVENANCE").write_text(provenance(tag, files), encoding="utf-8")
+    # An explicit newline, not the platform default: `write_text` translates
+    # to CRLF on Windows, so the same code produced a different file here and
+    # on the runner -- and the weekly job then found a difference every week,
+    # in the line endings and nothing else.
+    (WHERE / "PROVENANCE").write_text(provenance(tag, files),
+                                      encoding="utf-8", newline="\n")
     print(f"  written to {WHERE}")
     return 0
 

@@ -6,10 +6,10 @@
 # years its drivers took 18 commits -- rare enough that nobody would think to
 # check, often enough to matter.
 #
-# **A pull request, never a commit.** A driver changing is a change to what
+# **A branch, never a commit to main.** A driver changing is a change to what
 # this package runs on somebody's hardware. The run installs that exact WeeWX
-# release and puts every test through it first, so what arrives is a diff that
-# has already been measured -- but the last look is a person's.
+# release and puts every test through it first, so what is pushed is a diff
+# that has already been measured -- but the last look is a person's.
 
 name: refresh-drivers
 
@@ -23,7 +23,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: refresh-drivers
@@ -70,29 +69,33 @@ jobs:
         if: steps.fetch.outputs.moved == 'yes'
         run: python tools/runtests.py
 
-      - name: Open a pull request
+      # A branch, and the link to open the pull request from. Not the pull
+      # request itself: that needs "Allow GitHub Actions to create and
+      # approve pull requests" under Settings -> Actions, and a workflow
+      # that fails weekly on a permission is worse than one click a year.
+      - name: Push the branch
         if: steps.fetch.outputs.moved == 'yes'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: refresh-drivers
-          title: "WeeWX ${{ steps.fetch.outputs.tag }} drivers"
-          commit-message: |
-            Take the drivers from WeeWX ${{ steps.fetch.outputs.tag }}
+        env:
+          TAG: ${{ steps.fetch.outputs.tag }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git checkout -B refresh-drivers
+          git add src/weewx_evo_weewx_driver/drivers
+          git commit -m "Take the drivers from WeeWX ${TAG}" -m \
+            "Fetched by tools/refresh.py from the release tarball, byte for
+          byte, with the digests in PROVENANCE rewritten. The whole suite ran
+          against that WeeWX release before this was pushed.
 
-            Fetched by tools/refresh.py from the release tarball, byte for
-            byte, with the digests in PROVENANCE rewritten. The whole suite
-            ran against that WeeWX release before this was opened.
-          body: |
-            `tools/refresh.py` found the shipped drivers differ from WeeWX
-            ${{ steps.fetch.outputs.tag }}. The diff is the drivers as that
-            release has them; nothing here was edited.
-
-            The suite ran against `weewx==${{ steps.fetch.outputs.tag }}`
-            with these files in place, `alldrivers_test.py` included -- which
-            is the check that each of the thirteen behaves the same under the
-            stand-in as under WeeWX itself.
-
-            What is worth reading before merging: which drivers changed, and
-            whether any of them touches the engine. A driver that is also a
-            service (Vantage is) reaches the shim's event dispatch, and that
-            is the part with no hardware behind it here.
+          Worth reading before merging: which drivers changed, and whether any
+          of them touches the engine. A driver that is also a service (Vantage
+          is) reaches the shim's event dispatch, and that is the part with no
+          hardware behind it here."
+          git push --force origin refresh-drivers
+          {
+            echo "### WeeWX ${TAG} moved the drivers"
+            echo
+            echo "Pushed to \`refresh-drivers\`, tests green against that release."
+            echo
+            echo "[Open the pull request](https://github.com/${GITHUB_REPOSITORY}/compare/main...refresh-drivers?expand=1)"
+          } >> "$GITHUB_STEP_SUMMARY"
