@@ -1,7 +1,7 @@
 WeeWX' own drivers, copied unchanged.
 
 source   https://github.com/weewx/weewx
-tag      v5.5.0
+tag      v5.4.0
 path     src/weewx/drivers/
 licence  GPL-3.0-or-later, the same as this package
 
