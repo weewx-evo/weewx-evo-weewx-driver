@@ -1,15 +1,24 @@
-WeeWX' own drivers, copied unchanged.
+WeeWX' own drivers, copied unchanged, with WeeWX' own licence.
 
 source   https://github.com/weewx/weewx
 tag      v5.5.0
 path     src/weewx/drivers/
-licence  GPL-3.0-or-later, the same as this package
+licence  LICENSE.txt beside them, from the same release
 
 Byte for byte. `tools/vendored_test.py` checks these digests, and
 `tools/refresh.py` is what fetched them -- run weekly, opening a
 pull request when the release moves, so a copy that has drifted is
 a failing check rather than a surprise.
 
+The licence file is here because every one of these says 'See the
+file LICENSE.txt for your full rights' in its first five lines. It
+is GPL-3, the same licence this package is under, and it is taken
+from the release the drivers came from rather than copied from
+anywhere else -- so it is the text those files were published with.
+The copyright is Tom Keffer's and the contributors', as each file's
+own header says.
+
+c61f12da7cdad526bdcbed47a4c0a603e60dbbfdaf8b66933cd088e9132c303f  LICENSE.txt
 9732c9cf5013a34f267db5b839c95839620c64f13f11b9db648a36942acd6d22  acurite.py
 808be5437557aa8ada9fb7f407146da0fddf09a952c152fd148b6d3d396377bf  cc3000.py
 1d554c1f0174a3f72adcf57f1a03d7ff23e5dd90be9d09d73a3f7e03605146ca  fousb.py

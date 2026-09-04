@@ -7,8 +7,11 @@ checkout that rewrote its line endings, a refresh that took a release nobody
 looked at -- none of those announce themselves, and all three end with this
 package running a driver that WeeWX does not have.
 
-So three questions, in the order they can go wrong:
+So four questions, in the order they can go wrong:
 
+  * is WeeWX' licence beside them? Every one of the thirteen says "See the
+    file LICENSE.txt for your full rights" in its first five lines, and
+    these are somebody else's GPL sources.
   * do the files match the digests in `drivers/PROVENANCE`?
   * where WeeWX is installed, is what it has the same bytes?
   * is what this package would actually load the shipped file, and not
@@ -50,7 +53,7 @@ def recorded() -> dict[str, str]:
     for line in (weewxdrivers.VENDORED / "PROVENANCE").read_text(
             encoding="utf-8").splitlines():
         bits = line.split()
-        if len(bits) == 2 and len(bits[0]) == 64 and bits[1].endswith(".py"):
+        if len(bits) == 2 and len(bits[0]) == 64:
             out[bits[1]] = bits[0]
     return out
 
@@ -63,10 +66,40 @@ def tag() -> str:
     return ""
 
 
+def the_licence_is_beside_them() -> None:
+    """Every one of the thirteen points at it in its first five lines.
+
+    "See the file LICENSE.txt for your full rights" -- and the file was not
+    there. That is not tidiness: these are somebody else's GPL sources, and
+    the licence text is the thing that makes redistributing them allowed.
+
+    Taken from the same release as the drivers rather than copied from
+    anywhere else, so it is the text those files were published under.
+    """
+    print("\nthe licence they point at")
+    licence = weewxdrivers.VENDORED / "LICENSE.txt"
+    check("it is there", licence.is_file(), True)
+    if not licence.is_file():
+        return
+    body = licence.read_text(encoding="utf-8", errors="replace")
+    check("and it is the GPL", "GNU GENERAL PUBLIC LICENSE" in body, True)
+    check("version 3", "Version 3, 29 June 2007" in body, True)
+    check("with a digest of its own",
+          "LICENSE.txt" in recorded(), True)
+
+    # The claim is per file, so the check is per file: a driver added later
+    # whose header points somewhere else would go unnoticed otherwise.
+    pointing = [one.name for one in sorted(weewxdrivers.VENDORED.glob("*.py"))
+                if "LICENSE.txt" in "".join(
+                    one.read_text(encoding="utf-8",
+                                  errors="replace").splitlines(True)[:8])]
+    check("and all thirteen point at it", len(pointing), 13)
+
+
 def the_files_are_what_provenance_says() -> None:
     print("\nwhat is here")
     said = recorded()
-    check("thirteen of them", len(said), 13)
+    check("thirteen of them, and the licence", len(said), 14)
 
     wrong = []
     for name, digest in sorted(said.items()):
@@ -156,6 +189,7 @@ def the_shipped_file_is_the_one_that_runs() -> None:
 
 
 def main() -> int:
+    the_licence_is_beside_them()
     the_files_are_what_provenance_says()
     they_are_weewx_own_bytes()
     the_shipped_file_is_the_one_that_runs()

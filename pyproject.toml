@@ -64,8 +64,16 @@ where = ["src"]
 # as `weewx_evo_weewx_driver.drivers.vantage`, and each of them starts with
 # `import weewx` -- so the name would exist and using it would fail. They
 # are loaded by path, the way `import_driver` loads any driver file.
+#
+# LICENSE.txt is in the list and not an afterthought: every one of the
+# thirteen says "See the file LICENSE.txt for your full rights", so a wheel
+# built without it ships GPL source pointing at a file that is not there.
 [tool.setuptools.package-data]
-weewx_evo_weewx_driver = ["drivers/*.py", "drivers/PROVENANCE"]
+weewx_evo_weewx_driver = [
+    "drivers/*.py",
+    "drivers/LICENSE.txt",
+    "drivers/PROVENANCE",
+]
 
 [tool.ruff]
 line-length = 100

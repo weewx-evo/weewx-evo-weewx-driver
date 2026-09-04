@@ -32,7 +32,10 @@ weewx-evo-weewx-driver run --collector shed
 
 They are WeeWX' own files, copied byte for byte from a release --
 `src/weewx_evo_weewx_driver/drivers/PROVENANCE` says which one and carries a
-SHA-256 for each. A workflow fetches them again every week and opens a pull
+SHA-256 for each. **WeeWX' own `LICENSE.txt` is in that directory too**,
+from the same release: each of the thirteen says "See the file LICENSE.txt
+for your full rights" in its first five lines, and these are somebody else's
+GPL sources. A workflow fetches them again every week and opens a pull
 request when a release moves them, so the copy going stale is a diff to read
 rather than something nobody notices.
 
@@ -141,6 +144,8 @@ GPL-3.0-or-later, the same as WeeWX and weewx-evo.
 weewx-evo and moved here unchanged.
 
 `src/weewx_evo_weewx_driver/drivers/` is **WeeWX' code**, redistributed under
-the same licence and not modified. `PROVENANCE` names the release each file
-came from and carries its digest; the copyright is Tom Keffer's and the
-contributors', as each file's own header says.
+the same licence and not modified. WeeWX' own `LICENSE.txt` is in that
+directory, taken from the release the drivers came from — which is the file
+each of them points at. `PROVENANCE` names that release and carries a digest
+per file; the copyright is Tom Keffer's and the contributors', as each file's
+own header says.

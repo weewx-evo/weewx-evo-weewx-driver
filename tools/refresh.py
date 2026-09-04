@@ -41,6 +41,15 @@ TARBALL = "https://github.com/weewx/weewx/archive/refs/tags/{tag}.tar.gz"
 #: `__init__.py` is the package, `test_*.py` are WeeWX' own tests.
 INSIDE = "src/weewx/drivers/"
 
+#: WeeWX' own licence file, fetched with them and put beside them. Every one
+#: of the thirteen says "See the file LICENSE.txt for your full rights" in its
+#: first five lines, so without it each of them points at a file that is not
+#: there -- and redistributing GPL source without the licence text is not a
+#: tidiness question. It is taken from the same release as the drivers, so it
+#: is the licence those files were published under and not a copy of the text
+#: from somewhere else.
+LICENCE = "LICENSE.txt"
+
 TIMEOUT = 60.0
 
 
@@ -50,7 +59,7 @@ def latest_tag() -> str:
 
 
 def drivers_from(tag: str) -> dict[str, bytes]:
-    """Every driver file in that release, by name."""
+    """Every driver file in that release, by name, and its licence."""
     url = TARBALL.format(tag=tag)
     with urllib.request.urlopen(url, timeout=TIMEOUT) as answer:
         raw = answer.read()
@@ -60,7 +69,14 @@ def drivers_from(tag: str) -> dict[str, bytes]:
             # The tarball has one top directory named for the tag, so the
             # path is matched from inside it rather than from the front.
             name = member.name.split("/", 1)[-1]
-            if not member.isfile() or not name.startswith(INSIDE):
+            if not member.isfile():
+                continue
+            if name == LICENCE:
+                handle = archive.extractfile(member)
+                if handle is not None:
+                    out[LICENCE] = handle.read()
+                continue
+            if not name.startswith(INSIDE):
                 continue
             stem = name[len(INSIDE):]
             if "/" in stem or not stem.endswith(".py"):
@@ -77,17 +93,25 @@ def provenance(tag: str, files: dict[str, bytes]) -> str:
     lines = [f"{hashlib.sha256(body).hexdigest()}  {name}"
              for name, body in sorted(files.items())]
     return (
-        "WeeWX' own drivers, copied unchanged.\n"
+        "WeeWX' own drivers, copied unchanged, with WeeWX' own licence.\n"
         "\n"
         "source   https://github.com/weewx/weewx\n"
         f"tag      {tag}\n"
         f"path     {INSIDE}\n"
-        "licence  GPL-3.0-or-later, the same as this package\n"
+        f"licence  {LICENCE} beside them, from the same release\n"
         "\n"
         "Byte for byte. `tools/vendored_test.py` checks these digests, and\n"
         "`tools/refresh.py` is what fetched them -- run weekly, opening a\n"
         "pull request when the release moves, so a copy that has drifted is\n"
         "a failing check rather than a surprise.\n"
+        "\n"
+        "The licence file is here because every one of these says 'See the\n"
+        "file LICENSE.txt for your full rights' in its first five lines. It\n"
+        "is GPL-3, the same licence this package is under, and it is taken\n"
+        "from the release the drivers came from rather than copied from\n"
+        "anywhere else -- so it is the text those files were published with.\n"
+        "The copyright is Tom Keffer's and the contributors', as each file's\n"
+        "own header says.\n"
         "\n" + "\n".join(lines) + "\n")
 
 
@@ -102,12 +126,19 @@ def main(argv: list[str]) -> int:
     tag = args.tag or latest_tag()
     print(f"WeeWX {tag}")
     files = drivers_from(tag)
-    if not files:
+    drivers = [one for one in files if one != LICENCE]
+    if not drivers:
         # Not an empty write. A tarball whose layout moved would otherwise
         # delete thirteen drivers and call it an update.
         print("  no driver files in that tarball; nothing was written")
         return 2
-    print(f"  {len(files)} driver file(s)")
+    if LICENCE not in files:
+        # Same reason, and it is the half nobody would notice: the drivers
+        # would still be right and the thing that makes redistributing them
+        # allowed would quietly stop being shipped.
+        print(f"  no {LICENCE} in that tarball; nothing was written")
+        return 2
+    print(f"  {len(drivers)} driver file(s), and {LICENCE}")
 
     changed, added = [], []
     for name, body in sorted(files.items()):
