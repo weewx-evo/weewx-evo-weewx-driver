@@ -322,8 +322,9 @@ def when_the_driver_throws(clock: Clock) -> None:
 def the_command_line() -> None:
     """The commands, run the way a service file runs them.
 
-    In a subprocess, through `python -m weewx_evo.cli`, because that is the
-    entry point and reaching into the module does not exercise it. This is
+    In a subprocess, through `python -m weewx_evo_weewx_driver.cli`,
+    because that is the entry point and reaching into the module does not
+    exercise it. This is
     here because of a real failure: `cmd_weewx_driver_run` read `args.token`,
     which `add_listen_args` sets and `add_common` does not, so the command
     died with an AttributeError the first time it was run for real. No test
@@ -346,13 +347,20 @@ def the_command_line() -> None:
             "    archive_interval = 300\n", encoding="utf-8")
 
         def run(args, token=None):
-            env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+            # Both trees: this add-on and the core it imports. One of them
+            # alone leaves the subprocess unable to import the other, and
+            # what that looks like is every command failing while the same
+            # command works when typed.
+            env = dict(os.environ, PYTHONPATH=os.pathsep.join(
+                [str(ROOT / "src"),
+                 *(one for one in
+                   os.environ.get("PYTHONPATH", "").split(os.pathsep) if one)]))
             env.pop("WEEWX_EVO_TOKEN", None)
             if token:
                 env["WEEWX_EVO_TOKEN"] = token
             return subprocess.run(
-                [sys.executable, "-m", "weewx_evo.cli", "weewx-driver", *args,
-                 "--conf", str(conf)],
+                [sys.executable, "-m", "weewx_evo_weewx_driver.cli",
+                 *args, "--conf", str(conf)],
                 capture_output=True, text=True, timeout=120, check=False,
                 cwd=raw, env=env)
 

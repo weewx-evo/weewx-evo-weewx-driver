@@ -72,12 +72,18 @@ stand-in and once through WeeWX' own code, compared field by field. Vantage
 42 of 42, fousb 14 of 14, weewx-sdr 4 of 4.
 
 ```bash
-python tools/alldrivers_test.py   # all thirteen, twice, compared
-python tools/standin_test.py      # the same driver, with no WeeWX installed
-python tools/vantage_test.py      # a Davis, down to the serial port
+PYTHONPATH=/path/to/weewx-evo/src python tools/runtests.py
 ```
 
-The tests that compare against WeeWX skip where it is absent, and say so.
+Seven tests, and the path matters: everything here imports weewx-evo, and
+the run says so rather than failing seven times for the same reason. What
+compares against WeeWX skips where WeeWX is absent, and says which.
+
+    7/7 passed
+
+The image to run them in is weewx-evo's own `docker/Dockerfile`, which has
+WeeWX in it -- a test that cannot compare against the thing it was
+transcribed from is an opinion.
 
 ## Licence
 

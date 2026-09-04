@@ -425,14 +425,17 @@ def a_collector_with_no_weewx_conf(files: list[Path]) -> None:
             "    pass\n"
             "else:\n"
             "    raise SystemExit('weewx imported anyway; the block failed')\n"
-            "from weewx_evo.cli import main\n"
-            "sys.argv = ['weewx-evo'] + sys.argv[1:]\n"
+            "from weewx_evo_weewx_driver.cli import main\n"
+            "sys.argv = ['weewx-evo-weewx-driver'] + sys.argv[1:]\n"
             "raise SystemExit(main())\n", encoding="utf-8")
 
-        env = {key: value for key, value in __import__("os").environ.items()
-               if key != "PYTHONPATH"}
+        # PYTHONPATH is kept, minus nothing: the block below is what keeps
+        # WeeWX out, and emptying the path instead would also hide the core
+        # and this package -- so the run would prove that an import fails
+        # rather than that the stand-in works.
+        env = dict(__import__("os").environ)
         run = subprocess.run(
-            [sys.executable, str(runner), "weewx-driver", "check",
+            [sys.executable, str(runner), "check",
              "--config", str(config), "--collector", "shed", "--count", "2"],
             capture_output=True, text=True, timeout=120, check=False,
             env=env, cwd=str(home))
