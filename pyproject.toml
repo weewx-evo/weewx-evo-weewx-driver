@@ -18,13 +18,21 @@ requires-python = ">=3.11"
 
 # Nothing. That is the whole point of `weewxnames.py`: a WeeWX driver's
 # `import weewx` is stood in for, so running one costs the driver file and
-# nothing else. pyusb or pyserial are the driver's business and are installed
-# where the hardware needs them -- `hardware` says which are missing and what
-# they are called on PyPI, because the import name and the package name
-# differ and nobody guesses `pyusb` from `usb`.
+# nothing else.
+#
+# The libraries below are per hardware and not per package, so they are
+# extras. Measured over the thirteen rather than remembered: six import
+# `usb`, five import `serial`, and ws23xx opens its own serial port with
+# fcntl and termios while the simulator needs nothing at all. Installing
+# both on a machine with one Vantage would pull in a USB stack for hardware
+# that is not there.
 dependencies = []
 
 [project.optional-dependencies]
+# pip install "weewx-evo-weewx-driver[usb]"
+usb = ["pyusb>=1.2"]
+serial = ["pyserial>=3.5"]
+all = ["pyusb>=1.2", "pyserial>=3.5"]
 dev = ["ruff>=0.16"]
 
 [project.urls]
@@ -51,9 +59,24 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# WeeWX' thirteen drivers, shipped as *files* and not as a package. No
+# `__init__.py` in there on purpose: as a package they would be importable
+# as `weewx_evo_weewx_driver.drivers.vantage`, and each of them starts with
+# `import weewx` -- so the name would exist and using it would fail. They
+# are loaded by path, the way `import_driver` loads any driver file.
+[tool.setuptools.package-data]
+weewx_evo_weewx_driver = ["drivers/*.py", "drivers/PROVENANCE"]
+
 [tool.ruff]
 line-length = 100
 src = ["src", "tools", "tests"]
+
+# WeeWX' own drivers, copied byte for byte. Reformatting them would make the
+# comparison against WeeWX meaningless -- the whole claim of this package is
+# that the file here and the file there are the same file -- and the weekly
+# refresh would then produce a diff nobody can read. Same policy, same
+# reason, as `protocols/` and `catalogs/` in weewx-evo itself.
+exclude = ["src/weewx_evo_weewx_driver/drivers"]
 
 # The version, for the same reason as the rule list below. ISC004 does not
 # exist before 0.16, so a repository that names it and a ruff that has never

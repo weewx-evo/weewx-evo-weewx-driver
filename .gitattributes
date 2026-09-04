@@ -4,13 +4,15 @@
 # something else entirely.
 * text=auto eol=lf
 
-# Vendored, and byte-exact on purpose: it is somebody else's minified
-# JavaScript and touching it invalidates any comparison with upstream.
-src/weewx_evo/feeds/diagnostic/vendor/* -text
-
-# Captured console output. These are what a real Ecowitt station sent, and the
-# tests compare them literally.
-tests/ecowitt/fixtures/* -text
+# WeeWX' own drivers, byte for byte. `drivers/PROVENANCE` carries a SHA-256
+# for each, and a checkout that rewrote their line endings would fail that
+# check on Windows and pass on Linux -- which is the sort of difference that
+# takes an afternoon. Left exactly as they came.
+#
+# (The two entries that were here named paths from weewx-evo's own tree and
+# matched nothing in this repository: this file was copied over with the
+# package.)
+src/weewx_evo_weewx_driver/drivers/* -text
 
 *.sdb binary
 *.png binary

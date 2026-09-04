@@ -267,6 +267,10 @@ class FakeSerial:
         self.out = bytearray()        # what the console is waiting to be read
         self.written = []             # every command, for a test to inspect
         self.loops_left = 0
+        #: Wind speeds in mph, one per LOOP packet, cycled. Empty means the
+        #: console reports the same thing every time, which is what every
+        #: other test here wants.
+        self.winds: list[int] = []
         self.archive_pages: list[bytes] = []
         self.dmpaft_pages = 0
         self.dmpaft_index = 0
@@ -326,8 +330,16 @@ class FakeSerial:
         if data.startswith((b"LOOP ", b"LPS ")):
             self.loops_left = int(data.strip().split(b" ")[-1])
             self.out += ACK
-            for _ in range(self.loops_left):
-                self.out += loop_packet()
+            for n in range(self.loops_left):
+                # A wind that changes between packets, when a test asks for
+                # one. A console whose readings never move cannot show what
+                # `VantageService` is for: it keeps the highest gust seen
+                # since the last archive boundary, so a constant wind and a
+                # broken reset look exactly alike.
+                readings = None
+                if self.winds:
+                    readings = {"windSpeed": self.winds[n % len(self.winds)]}
+                self.out += loop_packet(readings)
             return
 
         if data.startswith(b"DMPAFT"):

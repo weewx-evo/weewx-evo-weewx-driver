@@ -82,6 +82,16 @@ DIRNAME = "weewx-drivers"
 #: The environment variable that overrides where they live.
 ENV_VAR = "WEEWX_EVO_WEEWX_DRIVER_DIR"
 
+#: WeeWX' own thirteen, shipped with this package. `drivers/PROVENANCE` says
+#: which release they were copied from and carries a digest for each.
+#:
+#: They are here because without them a machine with no WeeWX has an empty
+#: list: `weewx.drivers` is the stand-in's, whose path is deliberately empty,
+#: and `user` does not exist. So somebody wanting to plug in a Vantage had to
+#: find vantage.py somewhere first -- which meant installing the program this
+#: package exists to avoid installing.
+VENDORED = Path(__file__).resolve().parent / "drivers"
+
 #: Modules under `user` that are never hardware. An installation that has had
 #: weewx-ultimate-push installed carries these, and they are a listener and a
 #: driver of drivers rather than a console.
@@ -752,19 +762,19 @@ def directory(configured: str | os.PathLike | None = None,
 def available(where: str | os.PathLike | None = None) -> list[Driver]:
     """Every WeeWX driver this machine could run, sorted by name.
 
-    Three places, and the third is the one that makes a console possible
-    without WeeWX: the drivers WeeWX ships, the extensions an installation
-    keeps under `user`, and the files somebody put in `where`.
+    Four places: what somebody put in `where`, the thirteen shipped with this
+    package, and -- where an installation happens to be beside this -- its
+    `user` extensions and WeeWX' own. The second is what makes a console
+    possible with no WeeWX at all.
     """
     found: dict[str, Driver] = {}
     for path, module in _files(where):
         if module in NOT_HARDWARE or not is_a_driver(path):
             continue
-        # First wins, and the order in `_files` puts an installation's own
-        # drivers ahead of a copy somebody dropped in the data directory. A
-        # file shadowing `weewx.drivers.vantage` would otherwise be built by
-        # `import_driver` under that name and be a different driver than the
-        # form was read from.
+        # First wins, in the order `_files` returns them, and that order is
+        # the whole of the policy -- it is documented there. A shadowed file
+        # would otherwise be built by `import_driver` under a name the form
+        # was read from a different file for.
         found.setdefault(module, read(path, module))
     return sorted(found.values(), key=lambda one: one.name.lower())
 
@@ -779,18 +789,42 @@ def by_module(module: str,
 
 
 def _files(where: str | os.PathLike | None) -> list[tuple[Path, str]]:
-    """Every file worth asking whether it is a driver, with its import path."""
+    """Every file worth asking whether it is a driver, with its import path.
+
+    In the order that decides which one wins when two carry the same name,
+    and each place is ahead of the next for a reason:
+
+      1. what somebody put in the data directory. Their own file, possibly
+         patched for their own hardware, and taking that away from them
+         would leave no way to run a fixed driver at all.
+      2. the thirteen shipped here, pinned to a WeeWX release and checked
+         against it.
+      3. `user`, then `weewx.drivers`, from an installation that happens to
+         be beside this.
+
+    **An installed WeeWX does not win**, and that is the opposite of the rule
+    for `weewxnames.py`. The two are different questions. There, WeeWX' own
+    `weewx.units` beats a transcription of it, and taking the real thing is
+    always right. Here the file is the driver, and which release it comes
+    from decides what the hardware does -- so a machine that happens to have
+    WeeWX 5.2 lying around would run a different driver from the one this
+    package's tests measured, with nothing to say so.
+    """
     out: list[tuple[Path, str]] = []
-    for package in ("weewx.drivers", "user"):
-        for inside in _package_paths(package):
-            for path in sorted(Path(inside).glob("*.py")):
-                if not path.stem.startswith("_"):
-                    out.append((path, f"{package}.{path.stem}"))
     here = Path(where) if where else None
     if here is not None and here.is_dir():
         for path in sorted(here.glob("*.py")):
             if not path.stem.startswith("_"):
                 out.append((path, f"weewx.drivers.{path.stem}"))
+    if VENDORED.is_dir():
+        for path in sorted(VENDORED.glob("*.py")):
+            if not path.stem.startswith("_"):
+                out.append((path, f"weewx.drivers.{path.stem}"))
+    for package in ("weewx.drivers", "user"):
+        for inside in _package_paths(package):
+            for path in sorted(Path(inside).glob("*.py")):
+                if not path.stem.startswith("_"):
+                    out.append((path, f"{package}.{path.stem}"))
     return out
 
 

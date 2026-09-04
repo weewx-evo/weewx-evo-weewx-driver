@@ -31,7 +31,6 @@ Needs a real WeeWX to compare against, and says so and skips without one.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import subprocess
 import sys
@@ -39,12 +38,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
-
-LOOKS_IN = (
-    ROOT.parent / "weewx" / "src" / "weewx" / "drivers",
-    Path("/usr/share/weewx/weewx/drivers"),
-    Path("/usr/lib/python3/dist-packages/weewx/drivers"),
-)
+sys.path.insert(0, str(ROOT / "tools"))
+import driverfiles  # noqa: E402  (after the path is set up)
 
 #: Seconds a single driver gets. Several retry with a wait between tries, and
 #: `wait_before_retry = 0` is passed where the driver takes it -- but not all
@@ -95,18 +90,8 @@ def check(what: str, got: object, want: object) -> bool:
 
 
 def find_drivers(given: str | None) -> Path | None:
-    if given:
-        found = Path(given)
-        return found if found.is_dir() else None
-    for candidate in LOOKS_IN:
-        if candidate.is_dir():
-            return candidate
-    spec = importlib.util.find_spec("weewx")
-    if spec and spec.origin:
-        beside = Path(spec.origin).parent / "drivers"
-        if beside.is_dir():
-            return beside
-    return None
+    """The directory to take all thirteen from. See `driverfiles`."""
+    return driverfiles.a_directory(given)
 
 
 def run(stem: str, path: Path, against: str) -> dict:

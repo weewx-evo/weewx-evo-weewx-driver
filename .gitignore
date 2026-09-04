@@ -4,3 +4,8 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# Written by a test run that starts a listener here: the settings page
+# writes this the moment an archive is configured, and it is state, not
+# source.
+data/

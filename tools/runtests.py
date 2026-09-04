@@ -34,6 +34,8 @@ TOOLS = ROOT / "tools"
 #: does not have to be installed, and requiring it would be the opposite
 #: claim.
 TESTS = [
+    ("vendored", "vendored_test.py",
+     "the thirteen drivers shipped here are WeeWX', unchanged", ()),
     ("shim", "shim_test.py",
      "a WeeWX driver, run in its own process, delivering to us", ("weewx",)),
     ("standin", "standin_test.py",

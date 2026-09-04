@@ -23,7 +23,6 @@ needs a WeeWX installed. Without one the test says so and does the rest.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import subprocess
 import sys
@@ -32,12 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tools"))
-
-LOOKS_IN = (
-    ROOT.parent / "weewx" / "src" / "weewx" / "drivers" / "fousb.py",
-    Path("/usr/share/weewx/weewx/drivers/fousb.py"),
-    Path("/usr/lib/python3/dist-packages/weewx/drivers/fousb.py"),
-)
+import driverfiles  # noqa: E402  (after the path is set up)
 
 CLOSE = 1e-6
 failures = 0
@@ -62,18 +56,8 @@ def near(what: str, got: float | None, want: float, tol: float = 1e-6) -> bool:
 
 
 def find_driver(given: str | None) -> Path | None:
-    if given:
-        found = Path(given)
-        return found if found.is_file() else None
-    for candidate in LOOKS_IN:
-        if candidate.is_file():
-            return candidate
-    spec = importlib.util.find_spec("weewx")
-    if spec and spec.origin:
-        beside = Path(spec.origin).parent / "drivers" / "fousb.py"
-        if beside.is_file():
-            return beside
-    return None
+    """The file, from wherever this machine has one. See `driverfiles`."""
+    return driverfiles.a_driver("fousb.py", given)
 
 
 def build(path: Path):

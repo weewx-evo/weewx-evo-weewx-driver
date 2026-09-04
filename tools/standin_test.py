@@ -31,7 +31,6 @@ stand-in is the same and not merely plausible.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import subprocess
 import sys
@@ -40,14 +39,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
-
-#: Where a fousb.py tends to be. A checkout beside this one first, because
-#: that is what a machine doing this work has.
-LOOKS_IN = (
-    ROOT.parent / "weewx" / "src" / "weewx" / "drivers" / "fousb.py",
-    Path("/usr/share/weewx/weewx/drivers/fousb.py"),
-    Path("/usr/lib/python3/dist-packages/weewx/drivers/fousb.py"),
-)
+sys.path.insert(0, str(ROOT / "tools"))
+import driverfiles  # noqa: E402  (after the path is set up)
 
 failures = 0
 
@@ -71,19 +64,8 @@ def near(what: str, got: float | None, want: float, tol: float = 1e-9) -> bool:
 
 
 def find_driver(given: str | None) -> Path | None:
-    if given:
-        found = Path(given)
-        return found if found.is_file() else None
-    for candidate in LOOKS_IN:
-        if candidate.is_file():
-            return candidate
-    # An installed WeeWX, wherever it put itself.
-    spec = importlib.util.find_spec("weewx")
-    if spec and spec.origin:
-        beside = Path(spec.origin).parent / "drivers" / "fousb.py"
-        if beside.is_file():
-            return beside
-    return None
+    """The file, from wherever this machine has one. See `driverfiles`."""
+    return driverfiles.a_driver("fousb.py", given)
 
 
 def fake_usb() -> types.ModuleType:
@@ -148,7 +130,7 @@ def main() -> int:
     if path is None:
         print("  no fousb.py found, so there is nothing to run this against.")
         print("  Looked in:")
-        for one in LOOKS_IN:
+        for one in driverfiles.directories():
             print(f"    {one}")
         print("\n  SKIP")
         return 0

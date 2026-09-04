@@ -39,7 +39,6 @@ hardware, and no simulator is honest about them.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import subprocess
 import sys
@@ -49,12 +48,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tools"))
-
-LOOKS_IN = (
-    ROOT.parent / "weewx" / "src" / "weewx" / "drivers" / "vantage.py",
-    Path("/usr/share/weewx/weewx/drivers/vantage.py"),
-    Path("/usr/lib/python3/dist-packages/weewx/drivers/vantage.py"),
-)
+import driverfiles  # noqa: E402  (after the path is set up)
 
 #: How close two floats have to be to count as the same reading. The driver
 #: divides integers by ten and by a thousand, so what comes out is exact to
@@ -84,18 +78,8 @@ def near(what: str, got: float | None, want: float, tol: float = CLOSE) -> bool:
 
 
 def find_driver(given: str | None) -> Path | None:
-    if given:
-        found = Path(given)
-        return found if found.is_file() else None
-    for candidate in LOOKS_IN:
-        if candidate.is_file():
-            return candidate
-    spec = importlib.util.find_spec("weewx")
-    if spec and spec.origin:
-        beside = Path(spec.origin).parent / "drivers" / "vantage.py"
-        if beside.is_file():
-            return beside
-    return None
+    """The file, from wherever this machine has one. See `driverfiles`."""
+    return driverfiles.a_driver("vantage.py", given)
 
 
 def build(path: Path):
@@ -200,6 +184,7 @@ def main() -> int:
     # -- and through our shim, which is what actually runs it ----------
     print("\nand as our envelope")
     _through_the_shim(path)
+    _the_service_half(path)
 
     print()
     if failures:
@@ -273,6 +258,86 @@ def _through_the_shim(path: Path) -> None:
     # and a shim that dispatched no events would leave its loop gust to climb
     # all day. That it bound at all is what says the engine reached it.
     check("it bound to the engine", found["callbacks"] >= 1, True)
+
+
+def _the_service_half(path: Path) -> None:
+    """Vantage is a driver *and* a service, and `windGust` is what that means.
+
+    `loader()` returns `VantageService`, not `Vantage`: it inherits from both
+    the driver and `StdService`, binds three events in its constructor, and a
+    Vantage LOOP packet carries **no** windGust of its own -- the service
+    computes it, as the highest windSpeed since the last archive boundary,
+    and zeroes it in `END_ARCHIVE_PERIOD`.
+
+    So two things have to be true, and neither shows in a field-by-field
+    comparison of one packet:
+
+      * the events reach it at all. A shim that swallowed them would deliver
+        packets with no windGust in them, and every gust reading of a Davis
+        station would silently be missing.
+      * `END_ARCHIVE_PERIOD` really is dispatched. Without it the gust only
+        ever climbs: by evening every packet carries the day's maximum, and
+        nothing about the numbers looks wrong.
+    """
+    print("\nthe service half of it")
+    import vantagesim
+    from weewx_evo_weewx_driver import weewxnames, weewxshim
+
+    holder: dict = {}
+    sys.modules["serial"] = vantagesim.serial_module(holder)
+    weewxnames.install()
+    module = weewxshim.import_driver("weewx.drivers.vantage", path)
+    check("loader() gives the service, not the bare driver",
+          module.loader.__code__.co_names[:1], ("VantageService",))
+
+    config = {
+        "Station": {"station_type": "Vantage"},
+        "Vantage": {"driver": "weewx.drivers.vantage", "type": "serial",
+                    "port": "/dev/ttyUSB0", "baudrate": "19200",
+                    "wait_before_retry": "0.0", "timeout": "1.0",
+                    "max_tries": "2", "loop_request": "1"},
+    }
+    engine = weewxshim.ShimEngine(config)
+    console = module.loader(config, engine)
+
+    # Rising, then falling. The peak is in the middle, so a service that
+    # simply copied windSpeed would answer 4 at the end and the one that
+    # keeps the maximum answers 21.
+    port = holder.get("port")
+    port.winds = [7, 21, 4]
+
+    import weewx
+
+    engine.dispatchEvent(weewx.Event(weewx.STARTUP))
+    gusts = []
+    for packet in console.genLoopPackets():
+        engine.dispatchEvent(weewx.Event(weewx.NEW_LOOP_PACKET,
+                                         packet=packet))
+        gusts.append(packet.get("windGust"))
+        if len(gusts) == 3:
+            break
+
+    # Guarded rather than assumed: with the events swallowed every gust is
+    # None, and `max(None, None)` raises out of the middle of the run --
+    # which stops the checks after it and says TypeError where it should say
+    # which claim failed.
+    if not check("a LOOP packet carries a gust once the events run",
+                 all(one is not None for one in gusts), True):
+        print(f"      the packets carried: {gusts}")
+        return
+    check("and it is the highest since the boundary, not the latest",
+          gusts[-1], max(gusts))
+    near("which is the peak the console sent", gusts[-1], 21.0, 0.5)
+
+    # The one that matters. Without this event the gust never falls again.
+    engine.dispatchEvent(weewx.Event(weewx.END_ARCHIVE_PERIOD))
+    port.winds = [3]
+    after = next(iter(console.genLoopPackets()))
+    engine.dispatchEvent(weewx.Event(weewx.NEW_LOOP_PACKET, packet=after))
+    check("and END_ARCHIVE_PERIOD puts it back down",
+          after.get("windGust") < 21.0, True)
+
+    console.closePort()
 
 
 #: WeeWX's own code, the same simulator, one LOOP packet as JSON.
