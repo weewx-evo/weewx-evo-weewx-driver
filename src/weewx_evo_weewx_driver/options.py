@@ -52,6 +52,12 @@ def options(settings: dict) -> list:
                         "after it, and nothing here touches that file."),
             Option("driver_file", "Load the driver from this file",
                    kind="path", default="",
+                   # Same condition as `conf` above, and for the same
+                   # reason: both are ways of naming a driver that is not
+                   # in the list. Shown beside a chosen Vantage they read
+                   # as three ways of saying one thing, and a reader has
+                   # to work out which of the three wins.
+                   when=("driver", ("",)),
                    help="A driver is one file. With this set, WeeWX itself "
                         "does not have to be installed: what the file "
                         "imports is stood in for."),
@@ -91,14 +97,22 @@ def hardware_choices(chosen: str = "") -> list[tuple[str, str]]:
     """
     from . import weewxdrivers
 
+    # The name of the box, and the package it is missing. Not the module
+    # path: that is the *value*, which is what gets stored, and printing it
+    # in the label as well made a menu of `Ultimeter
+    # (weewx.drivers.ultimeter)` -- the same string twice, one half of it
+    # unreadable, on a page where every other line is in the reader's own
+    # language. The path is still what a person needs when a driver file has
+    # to be replaced, so it is on the driver's own page rather than in a
+    # menu somebody is scanning for the name on their console.
     out: list[tuple[str, str]] = []
     for one in weewxdrivers.available(_driver_directory()):
         if one.problem:
             label = f"{one.name} -- {one.problem}"
         elif one.needs:
-            label = f"{one.name} ({one.module}), needs {one.needs}"
+            label = f"{one.name} (needs {one.needs})"
         else:
-            label = f"{one.name} ({one.module})"
+            label = one.name
         out.append((one.module, label))
     if chosen and chosen not in [value for value, _ in out]:
         out.append((chosen, f"{chosen} -- not found on this machine"))
