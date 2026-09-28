@@ -1,7 +1,7 @@
 WeeWX' own drivers, copied unchanged, with WeeWX' own licence.
 
 source   https://github.com/weewx/weewx
-tag      v5.5.0
+tag      v5.5.2
 path     src/weewx/drivers/
 licence  LICENSE.txt beside them, from the same release
 
@@ -21,11 +21,11 @@ own header says.
 c61f12da7cdad526bdcbed47a4c0a603e60dbbfdaf8b66933cd088e9132c303f  LICENSE.txt
 9732c9cf5013a34f267db5b839c95839620c64f13f11b9db648a36942acd6d22  acurite.py
 808be5437557aa8ada9fb7f407146da0fddf09a952c152fd148b6d3d396377bf  cc3000.py
-1d554c1f0174a3f72adcf57f1a03d7ff23e5dd90be9d09d73a3f7e03605146ca  fousb.py
+bcb57e30f17a321e759343ca6a1091eb86484b22e4bb4b8c1d00f4fec514c8de  fousb.py
 939caf43e06cbd7f3ab80c633ce4f188de586e4826fe334cdd037e6dbcb1e386  simulator.py
 6244b0a27a51b61136dce752b84e9abc585da94271dcbeec459d8ab5376e6d7d  te923.py
 532999d98889e14aeb9fd2ff994f16df5a5dec7964be8bb93ffd318880adaa00  ultimeter.py
-49c38034bdcfdc58202c608c09d05cc76017d8492a7d88607b9ec93b0f106911  vantage.py
+791dabb95db3a97f71fdbe073c65e628293cb710b7a1c9bca92d361b74a9db2a  vantage.py
 e96c3312a8776252f61782aca8efd80539a1b78395713cad225164edc6b9e865  wmr100.py
 e051e169a1a89d23b50fb574d82b95e1c3506497c3bf072e66e982393024a9bd  wmr300.py
 6dfde4d814bf130466722a6e72152d8e52538b3fc79b5d351c9a070d7a4a541d  wmr9x8.py
